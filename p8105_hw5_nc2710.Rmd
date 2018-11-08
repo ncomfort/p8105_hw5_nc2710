@@ -69,22 +69,31 @@ final_df =
     gather(key = week, value = observation, week_1:week_8) %>% 
     separate(week, into = c("remove", "week"), sep = "_") %>%
     select(-remove) %>% 
-    mutate(arm = str_replace(arm, "con", "control"),
-           arm = str_replace(arm, "exp", "experimental"))
+    mutate(arm = str_replace(arm, "con", "Control"),
+           arm = str_replace(arm, "exp", "Experimental")) %>% 
+    mutate(week = as.numeric(week))
 
 ```
 
-The raw data includes 20 files (one for each subject with 10 control subjects and 10 experimental subjects), each with eight weeks of observations. I changed this from wide to long format. 
+The raw data includes 20 files (one for each subject with 10 control subjects and 10 experimental subjects), each with eight weeks of observations. I changed this from wide to long format. This results in a final dataset (named final_df) that includes `r nrow(final_df)` observations of `r ncol(final_df)` variables, including: the filename, study arm, subject ID, week of observation, and value of the observation recorded. 
 
-The code below creates a spaghetti plot showing observations on each subject over time:
+The code below creates a spaghetti plot showing observations of each subject over time:
 
 ```{r spaghetti plot}
 
-
+final_df %>% 
+  ggplot(aes(x = week, y = observation, color = subject_id)) +
+  geom_line() +
+  facet_grid(~arm) +
+  labs(
+    title = "Observations Across Weeks by Study Arm",
+    x = "Week",
+    y = "Observation Value"
+  )
 
 ```
 
-Comment on differences between groups. 
+Looking at the spaghetti plot, it is apparent that subjects in the experimental arm had increased values over time compared to subjects in the control group, whose observations seemed to remain relatively stable over time. 
 
 ## Problem 2 
 

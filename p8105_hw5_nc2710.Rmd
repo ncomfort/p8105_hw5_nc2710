@@ -104,9 +104,15 @@ The Washington Post has gathered data on homicides in 50 large U.S. cities and m
 homicide_data =
   read_csv(file = "./homicide-data/homicide-data.csv") # import dataset
 
+homicide_data %>% 
+  distinct(state)
+
+min(homicide_data$reported_date)
+max(homicide_data$reported_date)
+
 ```
 
-The raw data is a dataframe regarding homicides composed of `r nrow(homicide_data)` observations of `r ncol(homicide_data)` variables. The variables include: unique case ID, reported date, victim last name and first name, as well as demographic information of the victim (race, age, sex). There is also information on the location including city, state, latitude/longitude, and finally, the disposition of the case (e.g. whether or not the case was resolved). 
+The raw data is a dataframe regarding homicides from 28 different states that took place from Jan 1, 2007 to November 2015. The dataset is composed of `r nrow(homicide_data)` observations of `r ncol(homicide_data)` variables. The variables include: unique case ID, reported date, victim last name and first name, as well as demographic information of the victim (race, age, sex). There is also information on the location including city, state, latitude/longitude, and finally, the disposition of the case (e.g. whether or not the case was resolved). 
 
 We will perform some data manipulation to create a new variable indicating both city and state, and for each city/state, obtain the total number of homicides as well as the number of unsolved homicides: 
 
@@ -123,12 +129,29 @@ homicide_data =
 
 ```
 
+Using this new dataset, for each location, we can look at the proportion of homicides that were unresolved (i.e. case not closed by arrest). 
 
-For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+Over this time period, Tulsa, AZ had the lowest number of total homicides, with only 1, whereas Chicago had the most total homicides, with 5535 cases. 
 
-```{r prop.test}
+We will next estimate the proportion of homicides that are unresolved for the city of Baltimore, MD: 
 
+```{r Baltimore prop.test}
 
+# For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved
+
+# Manually, we can do the math to look at the proportion of unresolved homicides for Baltimore: 1825/2877 = 0.64556 so this will be the estimate we try to get our code to produce 
+
+prop_test_df = 
+  homicide_data %>% 
+  filter(city_state == "Baltimore, MD")
+  
+baltimore_prop_test = # Save the output of prop.test as an R object
+  prop.test(prop_test_df$unsolved_homicides, prop_test_df$total_homicides,
+            conf.level = 0.95, correct = TRUE) %>% 
+  broom::tidy(baltimore_prop_test) %>% # Apply the broom::tidy to this object 
+  select(estimate, conf.low, conf.high) # Pull the estimated proportion and confidence intervals from the resulting tidy dataframe
+
+# Indeed, our two-sided prop.test gave us an estimate of 0.64556, as expected
 
 ```
 

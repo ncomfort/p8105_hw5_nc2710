@@ -20,6 +20,7 @@ library(patchwork)
 library(viridis)
 library(rvest)
 library(purrr)
+library(stringr) 
 
 # set options for figures
 knitr::opts_chunk$set(
@@ -35,22 +36,47 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 
 The hw5_data zip file contains data from a longitudinal study that included a control arm and an experimental arm. Data for each participant is included in a separate file, and file names include the subject ID and arm (10 subjects per arm). 
 
-The code below creates a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time:
+The code below creates a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time (8 weeks): 
 
 ```{r import and tidy data}
 
-# start with a dataframe containing all file names; the list.files function will help 
+# create vector of file names to load using the list.files function 
+file_name <- list.files(path = "./data") %>% 
+  purrr::set_names()
 
 # Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
+# Tidy the result; manipulate file names to include control arm and subject ID
+import_data = function(x) {
+  
+  df = read_csv(file = str_c("./data/", x)) %>% 
+    mutate(filename = x) %>% # adds col with file name
+    separate(filename, into = c("file", "remove"), sep = "\\.") %>% # remove .csv from file col
+    select(-remove) %>% 
+    separate(file, into = c("arm", "subject_id"), sep = "_") # separate file col into arm and subj id variables
+  df
+  
+}
 
-# Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
+# Run the load_data function on all file names saved in the filename_vector, save output as a list col in a new df called final_df
+final_df = 
+  tibble(file_name) %>% 
+    mutate(data = map(file_name, import_data)) %>% 
+      unnest()
 
+# Make sure weekly observations are “tidy” (i.e. long format) and do any other tidying that’s necessary
+final_df =
+  final_df %>% 
+    gather(key = week, value = observation, week_1:week_8) %>% 
+    separate(week, into = c("remove", "week"), sep = "_") %>%
+    select(-remove) %>% 
+    mutate(arm = str_replace(arm, "con", "control"),
+           arm = str_replace(arm, "exp", "experimental"))
 
 ```
 
-Describe resulting dataframe using inline code. 
+The raw data includes 20 files (one for each subject with 10 control subjects and 10 experimental subjects), each with eight weeks of observations. I changed this from wide to long format. 
 
-Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+The code below creates a spaghetti plot showing observations on each subject over time:
 
 ```{r spaghetti plot}
 
@@ -58,13 +84,16 @@ Make a spaghetti plot showing observations on each subject over time, and commen
 
 ```
 
+Comment on differences between groups. 
+
 ## Problem 2 
 
 The Washington Post has gathered data on homicides in 50 large U.S. cities and made the data available through a GitHub repository. The code below loads the data and executes some data manipulation:  
 
 ```{r import homicide data}
 
-read_csv(file = "./data/homicide-data.csv") %>% # import dataset
+homicide_data =
+  read_csv(file = "./data/homicide-data.csv") %>% # import dataset
   janitor::clean_names() %>% # clean names
   mutate(city_state = MAKE VARIABLE) %>% # create a city_state variable (e.g. “Baltimore, MD”)
   group_by(city) %>% 

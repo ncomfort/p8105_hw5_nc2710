@@ -187,16 +187,16 @@ homicide_data_prop_tests = homicide_data %>%
 
 The city with the largest proportion of unsolved homicides is Chicago, IL followed by New Orleans, LA then Baltimore, MD. The city with the lowest proportion of unsolved homicides is Tulsa, AL for which there was only 1 homicide which was resolved. After Tulsa, AL the cities with the lowest estimates for unsolved homicides is Richmond, VA then Charlotte, NC. 
 
-Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+Below is a plot that shows the estimates for unsolved homicides and corresponding 95% confidence intervals for each city:
 
 ```{r homicide plot}
 
 homicide_data_prop_tests %>% 
-  ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
+  ggplot(aes(x = reorder(city_state, estimate), y = estimate)) + # Organize cities according to the proportion of unsolved homicides 
   geom_point() +
-  geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
+  geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) + # add error bars based on upper/lower CI limits 
     labs(
-      title = "Unsolved Homicide Cases by City",
+      title = "Unsolved Homicide Cases by City, 2007-2015",
       x = "City",
       y = "Proportion of Unsolved Homicides",
       caption = "Data obtained from the Washington Post"
@@ -205,3 +205,32 @@ homicide_data_prop_tests %>%
 
 ```
 
+From the plot, we can see that Tulsa, AL has an extremely wide confidence interval, but this is due to the very limited sample size (only one homicide case). Looking into this 'outlier' further, it appears that this entry was likely in error and that this data point belongs to Tulsa, OK, because the Washington Post dataset says that the data describes homicides that took place in 50 cities yet the dataset lists 51 cities when we include the city_state variable, with two rows for Tulsa. 
+
+```{r remove Tulsa, AL}
+
+# Remove the row for Tulsa, AL
+homicide_data_prop_tests =
+  filter(homicide_data_prop_tests, city_state != "Tulsa, AL")
+
+# Re-plot excluding the Tulsa, AL 
+homicide_data_prop_tests %>% 
+  ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
+  labs(
+    title = "Unsolved Homicide Cases by City, 2007-2015",
+    x = "City",
+    y = "Proportion of Unsolved Homicides",
+    caption = "Data obtained from the Washington Post"
+    ) + 
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))
+# note that this estimate will still be slightly off because we are one homicide case short 
+
+```
+
+When we remove the incorrect Tulsa, AL entry, we can see that Richmond, VA has the lowest proportion of unsolved homicides, followed by Charlotte, NC then Memphis, TN and Tulsa, OK. Note that the estimate for Tulsa, OK is not completely accurate because it is one homicide case short, but with 583 total homicides I doubt that one additional case would impact the confidence intervals that much. 
+
+Chicago, IL has the smallest confidence interval because it has the largest sample size of 5,535 total homicides.
+
+It would be interesting to look at how these unsolved homicide cases vary by demographics of the victim (sex, age, race) as well as how the number of unsolved homicide cases changes over time. I would hope that with each passing year, a larger proportion of homicide cases become resolved by arrest. 

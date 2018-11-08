@@ -149,23 +149,59 @@ baltimore_prop_test = # Save the output of prop.test as an R object
   prop.test(prop_test_df$unsolved_homicides, prop_test_df$total_homicides,
             conf.level = 0.95, correct = TRUE) %>% 
   broom::tidy(baltimore_prop_test) %>% # Apply the broom::tidy to this object 
-  select(estimate, conf.low, conf.high) # Pull the estimated proportion and confidence intervals from the resulting tidy dataframe
+  select(estimate, conf.low, conf.high) %>% # Pull the estimated proportion and confidence intervals from the resulting tidy dataframe
+  knitr::kable(digits = 4)
 
+print(baltimore_prop_test)
 # Indeed, our two-sided prop.test gave us an estimate of 0.64556, as expected
 
 ```
 
-Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+The proportion of homicides in Baltimore, MD that are unresolved is 0.6456. We are 95% confident that the "true" estimate lies within the range (0.6276, 0.6632). That means that more than half of the homicides in Baltimore remain unresolved. 
 
-```{r unsolved homicides}
+We will next run this test for each of the cities in the dataset: 
+
+```{r unsolved homicides all cities}
+
+# Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+
+prop_test_fxn = function(x) {
+  
+  test_result =
+        broom::tidy(
+          prop.test(x = homicide_data[["unsolved_homicides"]][[x]], homicide_data[["total_homicides"]][[x]])) %>%
+          select(estimate, conf.low, conf.high)
+  test_result
+}
+
+# Run the prop. test on each row, save results to a list column in a new df
+
+homicide_data_prop_tests = homicide_data %>%
+  mutate(prop_test = map(1:nrow(homicide_data), prop_test_fxn)) %>% 
+  unnest() %>% 
+  janitor::clean_names()
+
+# Warning: Chi-squared approximation may be incorrect.? Should I apply a continuity correction? 
 
 ```
+
+The city with the largest proportion of unsolved homicides is Chicago, IL followed by New Orleans, LA then Baltimore, MD. The city with the lowest proportion of unsolved homicides is Tulsa, AL for which there was only 1 homicide which was resolved. After Tulsa, AL the cities with the lowest estimates for unsolved homicides is Richmond, VA then Charlotte, NC. 
 
 Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
 
 ```{r homicide plot}
 
-
+homicide_data_prop_tests %>% 
+  ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
+    labs(
+      title = "Unsolved Homicide Cases by City",
+      x = "City",
+      y = "Proportion of Unsolved Homicides",
+      caption = "Data obtained from the Washington Post"
+    ) + 
+  theme(axis.text.x = element_text(angle = 75, hjust = 1))
 
 ```
 
